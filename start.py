@@ -48,7 +48,8 @@ class HTMLParser(HTMLParser):
         	'Борисова градина (София)': 11,
         	'Морска градина2 (Бургас)': 12,
         	'София Екиден Маратон': 14,
-        	'Брюксел (София)': 13
+        	'Брюксел (София)': 13,
+        	'Западен парк 2': 15
     	}[domPark]
 
 	def extractRaceData(self, text):
@@ -129,7 +130,7 @@ class HTMLParser(HTMLParser):
 	def insertRaceInDb(self,raceData):
 		self.connectDb()
 		try:
-			query = "INSERT INTO Race (EventId,DomParkId,Name,RaceDate)" \
+			query = "INSERT INTO Race (EventId,DomParkId,Name,Date)" \
 					"VALUES (%s,%s,%s,%s)"
 			args = (raceData['eventId'],raceData['domParkId'],raceData['name'],raceData['raceDate'])
 
