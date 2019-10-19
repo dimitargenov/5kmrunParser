@@ -6,8 +6,8 @@ FROM (
 	FROM Results
 	INNER JOIN Race ON Race.Id = Results.RaceId
 	WHERE True -- RunnerId = 14
-	-- AND Race.Date LIKE "2018-%"
-    AND Results.Position = 2
+	AND Race.Date LIKE "2019-%"
+    AND Results.Position = 1
     -- AND Race.DomParkId = 1
 	GROUP BY Results.RunnerId
 ) as t
