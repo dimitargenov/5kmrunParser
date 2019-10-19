@@ -16,7 +16,7 @@ class HTMLParser(HTMLParser):
                      charset=config['charset'])   # name of the database
 		self.cursor = self.db.cursor()
 
-	def __init__(self, url):
+	def __init__(self, domain):
 		self.domain = domain
 
 	def getTimeInSeconds(self, time):
@@ -62,43 +62,54 @@ class HTMLParser(HTMLParser):
 		
 		return raceData	
 
-	def insertResultInDb(self,runnerData,raceId):
+	def clearText(self, text):
+		return text.strip();	
+
+	def extractAndInsertResultInDb(self,runnerData,raceId):
+		if (runnerData[1].text.strip() == ''):
+			runnerId = 0
+			points = 0
+			totalRuns = 0
+			agePercent = 0
+			age = 0
+			agePercent = 0
+			gender = ''
+		else:
+			runnerId = int(runnerData[1].text)
+			age = self.clearText(runnerData[4].text)
+			gender = self.clearText(runnerData[5].text)	
+			points = int(runnerData[7].text)
+			totalRuns = int(runnerData[9].text)
+			agePercent = self.clearText(runnerData[6].text)[:-1]
+		
+		position = int(runnerData[0].text)
+		name = self.clearText(runnerData[2].text)
+		time = self.clearText(runnerData[3].text)
+		sexPosition = 0
+		agePosition = 0
+		timeInSeconds = self.getTimeInSeconds(self.clearText(runnerData[3].text))	
+		
+		args = (position,runnerId,name,time,age,gender,sexPosition,agePosition,points,totalRuns,
+			timeInSeconds,agePercent,raceId)
+		res = self.insertResults(args)
+		if (res == None and runnerId != 0 and (self.runnerExists(runnerId) == False)):
+			self.insertRunner(runnerId, name, age, gender)
+		print(res)
+
+	def insertResults(self, args):
 		self.connectDb()
 		try:
-			timeInSeconds = self.getTimeInSeconds(runnerData[3].text)
-			
-			if (runnerData[1].text == 'Няма'):
-				runnerId = 0
-				sexPosition = 0
-				agePosition = 0
-				points = 0
-				totalRuns = 0
-				agePercent = 0
-			else:
-				runnerId = runnerData[1].text	
-				sexPosition = runnerData[6].text
-				agePosition = runnerData[7].text
-				points = runnerData[9].text
-				totalRuns = runnerData[11].text
-				agePercent = runnerData[8].text[:-1]
-			
 			query = "INSERT INTO Results (" \
-				"Position,RunnerId,Name, `Time`,Age,Sex, SexPosition,AgePosition,Points, TotalRuns,TimeInSeconds,AgePercent, RaceId)" \
-				"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
-			args = (runnerData[0].text,runnerId,runnerData[2].text, runnerData[3].text,runnerData[4].text,runnerData[5].text,
-					sexPosition,agePosition,points, totalRuns,timeInSeconds,agePercent,raceId)
-
+				"Position,RunnerId,Name,`Time`,Age,Sex,SexPosition,AgePosition,Points,TotalRuns,TimeInSeconds,AgePercent,RaceId)" \
+				" VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
 			self.cursor.execute(query, args)
-			timeInSeconds = self.getTimeInSeconds(runnerData[3].text)
-			res = self.db.commit()
-			if (res == None and runnerData[1].text != 'Няма' and (self.runnerExists(runnerId) == False)):
-				self.insertRunner(runnerId, runnerData[2].text, runnerData[4].text, runnerData[5].text)
-			print(runnerId, res)
+			return self.db.commit()
 		   	
 		except Exception as e:
+			print('FAULT')
 			self.db.rollback()
 			print(str(e))
-			exit(2)
+			exit(2)		
 
 	def runnerExists(self, runnerId):
 		self.connectDb()
@@ -144,20 +155,20 @@ class HTMLParser(HTMLParser):
 		return self.cursor.lastrowid
 
 	def process(self, url, eventId):
-		resultUrl = self.domain + '/' + url
-		html = self.getHtmlContent(resultUrl)
+		html = self.getHtmlContent(url)
 		soup = BeautifulSoup(html, 'html.parser')
-		race = soup.find('div', {'class': 'col-sm-12'}).findAll('h3')
-		if race[0].text.find("1970") != -1:
+		race = soup.find('strong', {'class': 'title'})
+		if race.text.find("1970") != -1:
 			return False
-		raceData = self.extractRaceData(race[0].text)
+		raceData = self.extractRaceData(race.text)
 		raceData['eventId'] = eventId
 		print('-----Inserting Event---------' + str(eventId))
 		raceId = self.insertRaceInDb(raceData)
-		results = soup.find('table', {'class': 'table-bordered'}).findAll('tr')
+		results = soup.find('table', {'id': 'event_table'}).findAll('tr')
 		for row in results[1:]:
 			runnerData = row.findAll('td')
-			self.insertResultInDb(runnerData, raceId)
+			#print(runnerData)
+			self.extractAndInsertResultInDb(runnerData, raceId)
 
 	def eventExists(self, eventId):
 		self.connectDb()
@@ -168,19 +179,23 @@ class HTMLParser(HTMLParser):
 			return False
 
 	def getAndParseEventUrls(self, eventsPageUrl):
-		html = self.getHtmlContent(eventsPageUrl)	
+		html = self.getHtmlContent(eventsPageUrl)
 		soup = BeautifulSoup(html, 'html.parser')
-		events = soup.findAll('a', {'class': 'cal_ev'})
+		events = soup.findAll('div', {'class': 'preview'})
 		counter = 0
 		for event in reversed(events):
 			if (counter == 50):
 			 	print(counter)
-			 	break;
-			eventId = int(re.search(r'event=(.*?)&', event.get('href')).group(1))
+			 	break
+			url = event.findAll('a')[0].get('href') 	
+			eventId = int(url[-4:])
 			if (not self.eventExists(eventId)):
-				self.process(event.get('href'), eventId)
+				self.process(url, eventId)
 				counter+=1
-			
-domain = 'http://5km.5kmrun.bg'
-parser = HTMLParser(domain)
-parser.getAndParseEventUrls('http://5km.5kmrun.bg/calendar-a.php')
+
+parser = HTMLParser(config['url'])
+parser.getAndParseEventUrls(config['resultsPageUrl'])
+
+
+# Result https://5kmrun.bg/5kmrun/result/1429
+# Calendar https://5kmrun.bg/5kmrun/results
