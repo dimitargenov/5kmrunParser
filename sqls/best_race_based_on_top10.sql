@@ -1,5 +1,5 @@
 use fivekmrun;
-SELECT Race.EventId,Race.Name, Results.Position,
+SELECT Race.Name, Race.EventId, -- Results.Position,
 avg(Results.TimeInSeconds) AS AvgTopTen,
 sec_to_time(avg(Results.TimeInSeconds)) AS AvgTime,
 max(Results.Time) AS SlowTime, min(Results.Time) AS FastTime,

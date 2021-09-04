@@ -1,13 +1,15 @@
 use fivekmrun;
-SELECT t.RunnerId, Runner.Name, t.points
+SELECT t.RunnerId, Runner.Name, t.points, t.runs
 FROM (
-SELECT Results.RunnerId as RunnerId, SUM(Points) as points
+SELECT Results.RunnerId as RunnerId, SUM(Points) as points, COUNT(*) as runs
 FROM Results
 INNER JOIN Race ON Race.Id = Results.RaceId
 WHERE True -- RunnerId = 14
-AND Race.Date LIKE "2015-%"
+AND Race.Date LIKE "2017-%"
+AND Results.Sex = 'Мъж'
 GROUP BY Results.RunnerId
 ) as t
 INNER JOIN Runner ON Runner.RunnerId = t.RunnerId
 -- INNER JOIN DomPark ON DomPark.Id = Runner.DomParkId
 ORDER BY t.points DESC
+LIMIT 100

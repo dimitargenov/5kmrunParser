@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from html.parser import HTMLParser
 import urllib.request
 from bs4 import BeautifulSoup
@@ -184,17 +187,29 @@ class HTMLParser(HTMLParser):
 		events = soup.findAll('div', {'class': 'preview'})
 		counter = 0
 		for event in reversed(events):
+			#print(event)
+			#exit()
 			if (counter == 50):
 			 	print(counter)
 			 	break
 			url = event.findAll('a')[0].get('href') 	
 			eventId = int(url[-4:])
+			if (eventId in [1372,1373,1099,1629,1833,1832]):
+				continue
+
 			if (not self.eventExists(eventId)):
+				#print(eventId)
+				#exit()
+				
 				self.process(url, eventId)
 				counter+=1
 
 parser = HTMLParser(config['url'])
-parser.getAndParseEventUrls(config['resultsPageUrl'])
+for page in range(10):
+	if page == 0:
+		resultUrl = config['resultsPageUrl'] + '//' + str(page*50)
+		#parser.getAndParseEventUrls(config['resultsPageUrl'] )
+		parser.getAndParseEventUrls(resultUrl)
 
 
 # Result https://5kmrun.bg/5kmrun/result/1429

@@ -12,6 +12,6 @@ GROUP BY Id
 INNER JOIN Results ON Results.Id = r.Id
 INNER JOIN Race ON Race.Id = Results.RaceId
 AND Race.DomParkId = 1
-AND Race.RaceDate > "2018-01"
+AND Race.Date > "2019-01"
 ORDER BY TimeInSeconds ASC
 LIMIT 150;
